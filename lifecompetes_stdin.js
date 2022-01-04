@@ -109,7 +109,7 @@ var processboard=function(board,n){//We should be able to get away with async he
       console.log("Objects detected in board "+n+":");
       console.log(results.split("\n").join(" "));
     }else{
-      console.log("Board blank or timed out");
+      console.log("Board has no finite objects or timed out");
     }
     objects.pop();//Last line is blank for some reason
     objectstack.push([objects,board2rle(board,time)]);//Now just put it on the stack
