@@ -96,7 +96,13 @@ console.log("Cutoff at generation "+maxgen+".");
 var objectstack=[];
 var processboard=function(board,n){//We should be able to get away with async here, by using a stack
   var time=Date.now();
-  cp.exec("node lcprocessor.js "+JSON.stringify(board)+" "+maxgen,(error,stdout,stderr)=>{
+  var boardbits="";//This should get us below Windows's 8191-character limit
+  for(var i=0;i<50;i++){
+    for(var j=0;j<100;j++){
+      boardbits+=board[i][j];
+    }
+  }
+  cp.exec("node lcprocessor.js "+boardbits+" "+maxgen,(error,stdout,stderr)=>{
     if(error||stderr){
       console.log("Error parsing board "+JSON.stringify(board));
       console.error(`${error}`);
