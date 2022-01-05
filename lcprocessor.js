@@ -1117,4 +1117,14 @@ var processboard=function(board){
     console.log(code);
   }
 };
-processboard(JSON.parse(process.argv[2]));
+//Get the board from command line arguments
+var boardbits=process.argv[2];
+var board=createblankboard();
+for(var i=0;i<50;i++){
+  for(var j=0;j<100;j++){
+    if(boardbits[100*i+j]==="1"){
+      board[i][j]=1;
+    }
+  }
+}
+processboard(board);
