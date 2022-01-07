@@ -41,9 +41,12 @@ var createblankboard=function(){
   }
   return board;
 };
+var time=null;
+var firstboard=null;
+var currboard=null;
 //Turn a board into RLE
 var RLESIZE=5079;
-var board2rle=function(board,time){//5065 bytes in the worst case, plus one for spaces separating the board RLEs, and 13 for timestamps
+var board2rle=function(board,timestamp){//5065 bytes in the worst case, plus one for spaces separating the board RLEs, and 13 for timestamps
   //Remove trailing "b"s.
   for(var i=0;i<50;i++){
     for(var j=99;j>=0;j--){
@@ -61,7 +64,7 @@ var board2rle=function(board,time){//5065 bytes in the worst case, plus one for 
       row+="bo"[board[i][j]];
     }
     if(i===49){
-      row+="!"+time;
+      row+="!"+timestamp;
     }else{
       row+="$";
     }
@@ -94,7 +97,7 @@ if(maxgen===undefined){
 }
 console.log("Cutoff at generation "+maxgen+".");
 var objectstack=[];
-var processboard=function(board,n){//We should be able to get away with async here, by using a stack
+var processboard=function(board,n,firstboard,timestamp){//We should be able to get away with async here, by using a stack
   var time=Date.now();
   var boardbits="";//This should get us below Windows's 8191-character limit
   for(var i=0;i<50;i++){
@@ -118,7 +121,7 @@ var processboard=function(board,n){//We should be able to get away with async he
       console.log("Board has no finite objects or timed out");
     }
     objects.pop();//Last line is blank for some reason
-    objectstack.push([objects,board2rle(board,time)]);//Now just put it on the stack
+    objectstack.push([objects,board2rle(firstboard,timestamp)]);//Now just put it on the stack
   });
 };
 var pile={};
@@ -215,6 +218,60 @@ var writehaul=function(){
   //Done
   return haul;
 };
+var step=function(board){
+  if(board===null){
+    return null;
+  }
+  var horizontalsums=[];
+  for(var i=0;i<50;i++){
+    horizontalsums.push([]);
+    var sum=board[i][98]+board[i][99]+board[i][0];
+    for(var j=0;j<100;j++){
+      sum-=board[i][(j+98)%100];
+      sum+=board[i][(j+1)%100];
+      horizontalsums[i].push(sum);
+    }
+  }
+  var verticalsums=[];
+  for(var i=0;i<100;i++){
+    verticalsums.push([]);
+    var sum=horizontalsums[48][i]+horizontalsums[49][i]+horizontalsums[0][i];
+    for(var j=0;j<50;j++){
+      sum-=horizontalsums[(j+48)%50][i];
+      sum+=horizontalsums[(j+1)%50][i];
+      verticalsums[i].push(sum);
+    }
+  }//Now for counting neighbors, we only have to spend around 4 operations per cell, not 8.
+  var stepped=[];
+  for(var i=0;i<50;i++){
+    var row=[];
+    for(var j=0;j<100;j++){
+      var sum=verticalsums[j][i];
+      if(sum<=2||sum>=5){
+        row.push(0);//D0 to D1, D4 to D8, A0 to A2, A5 to A8
+      }else if(sum===3){
+        row.push(1);//S2, B3
+      }else{
+        row.push(board[i][j]);//S3, A4
+      }
+    }
+    stepped.push(row);
+  }
+  return stepped;
+};
+var boardsequal=function(b,c){
+  if(b===null||c===null){
+    return false;
+  }
+  for(var i=0;i<50;i++){
+    for(var j=0;j<100;j++){
+      if(b[i][j]!==c[i][j]){
+        return false;
+      }
+    }
+  }
+  return true;
+};
 var unstackerid;
 //Now, let's try to add stack items into the pile
 var unstackloop=function(){
@@ -247,6 +304,7 @@ var unstackloop=function(){
 unstackloop();
 var boardeta=0;
 socket.on("state",function(message){
+  var timestamp=Date.now();
   //We force ourselves into a phase-locked loop with the server. See the comments below.
   if(Date.now()<boardeta){//Early board
     return;
@@ -256,7 +314,6 @@ socket.on("state",function(message){
   boardeta=Date.now()+t;//Calculate the ETA
   var cells=message.livingCells;
   var g=message.generation;
-  console.log("Processing board at generation "+g);
   var board=createblankboard();
   for(var i=0;i<cells.length;i++){
     var cell=cells[i];
@@ -264,7 +321,21 @@ socket.on("state",function(message){
       board[cell.y][cell.x]=1;
     }
   }
-  processboard(board,g);
+  var compboard=step(currboard);
+  var equal=boardsequal(board,compboard);
+  //Always update currboard
+  currboard=board;
+  if(!boardsequal(board,compboard)){//Cells were placed, AND they make a difference in the next generation.
+    var oldtime=time;//This is our old timestamp
+    var oldboard=firstboard;//This is our old board
+    firstboard=board;//This is now the first board of this evolution sequence, and hence is the most informative.
+    time=timestamp;//Now update this too
+    if(oldtime===null){
+      return;//Nothing to process
+    }
+    console.log("Processing board at generation "+g);
+    processboard(board,g,oldboard,oldtime);//Use the RLE and timestamp of the old stuff, but process the new stuff since it's had more time to stabilize.
+  }
 });
 //Phase-locked loop explanation
 //One naive method would be to try to request the state every t seconds or so. However, network lag means that if we run the program near a time when the board steps, network lag means that we might get the state right before step n happens and then get the state right after step n+1 happens, which means that we would miss the board at step n.
