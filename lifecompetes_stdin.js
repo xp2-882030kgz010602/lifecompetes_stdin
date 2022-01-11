@@ -322,7 +322,6 @@ socket.on("state",function(message){
     }
   }
   var compboard=step(currboard);
-  var equal=boardsequal(board,compboard);
   //Always update currboard
   currboard=board;
   if(!boardsequal(board,compboard)){//Cells were placed, AND they make a difference in the next generation.
@@ -334,7 +333,7 @@ socket.on("state",function(message){
       return;//Nothing to process
     }
     console.log("Processing board at generation "+g);
-    processboard(board,g,oldboard,oldtime);//Use the RLE and timestamp of the old stuff, but process the new stuff since it's had more time to stabilize.
+    processboard(compboard,g,oldboard,oldtime);//Use the RLE and timestamp of the old stuff, but process the new stuff since it's had more time to stabilize.
   }
 });
 //Phase-locked loop explanation
