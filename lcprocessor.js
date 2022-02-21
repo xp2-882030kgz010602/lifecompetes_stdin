@@ -1017,6 +1017,17 @@ var processboard=function(board){
         infinite=true;
         break;
       }
+      //Apply changes
+      for(var i=0;i<50;i++){
+        for(var j=0;j<100;j++){
+          color=board[i][j];
+          if(color!==0){
+            var newcolor=pxy2cxy(color);
+            c=!c?newcolor[0]:c;
+            board[i][j]=newcolor;
+          }
+        }
+      }
       board=stepcolorbispecterboard(board);
     }
     if(infinite){
