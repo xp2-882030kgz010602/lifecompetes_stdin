@@ -1008,6 +1008,17 @@ var processboard=function(board){
         break;
       }
     }
+    for(var i=0;i<p;i++){//But an interaction might happen later, so we need to run for p more generations to check for that. (Example: HWSS interacts with pentadecathalon, and there's only one color left so the first loop exits. But actually it would interact again p generations later, implying infiniteness)
+      if(!mergecolorbispecters0(board)){//Figure out changes
+        infinite=true;
+        break;
+      }
+      if(!mergecolorbispecters1(board)){
+        infinite=true;
+        break;
+      }
+      board=stepcolorbispecterboard(board);
+    }
     if(infinite){
       boards[n]=undefined;
     }else{
