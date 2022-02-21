@@ -893,6 +893,7 @@ var compress=function(board){
   return compressed;
 };
 var GEN_LIMIT=1*process.argv[3];
+var PATHOLOGICAL=1001;
 var processboard=function(board){
   //Calculate the period
   var p=-1;
@@ -1008,28 +1009,6 @@ var processboard=function(board){
         break;
       }
     }
-    for(var i=0;i<p;i++){//But an interaction might happen later, so we need to run for p more generations to check for that. (Example: HWSS interacts with pentadecathalon, and there's only one color left so the first loop exits. But actually it would interact again p generations later, implying infiniteness)
-      if(!mergecolorbispecters0(board)){//Figure out changes
-        infinite=true;
-        break;
-      }
-      if(!mergecolorbispecters1(board)){
-        infinite=true;
-        break;
-      }
-      //Apply changes
-      for(var i=0;i<50;i++){
-        for(var j=0;j<100;j++){
-          color=board[i][j];
-          if(color!==0){
-            var newcolor=pxy2cxy(color);
-            c=!c?newcolor[0]:c;
-            board[i][j]=newcolor;
-          }
-        }
-      }
-      board=stepcolorbispecterboard(board);
-    }
     if(infinite){
       boards[n]=undefined;
     }else{
@@ -1114,6 +1093,13 @@ var processboard=function(board){
       var apg1=apgcode(g2b(grid));
       apg=compareapg(apg,apg1);
       p+=1;
+      if(p>=PATHOLOGICAL){
+        break;
+      }
+    }
+    if(p>=PATHOLOGICAL){//An HWSS interacting with a pentadecathalon will slip past the infinite pattern filter, due to the interaction not happening until everything becomes one color. We can't simply run it until it repeats on the board because running each pattern would take way too long.
+      console.log("PATHOLOGICAL");
+      continue;
     }
     var code;
     if(p===1){
