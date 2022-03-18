@@ -1,7 +1,7 @@
 import urllib2
 import hashlib
 import sys
-#The key and opname are taken in via command line arguments
+#The key is taken in via command line arguments
 key=sys.argv[1]
 serveraddress="https://catagolue.hatsya.com"
 payload="payosha256:get_token:"+key+":post_apgsearch_haul"
